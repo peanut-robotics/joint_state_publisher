@@ -167,6 +167,8 @@ class JointStatePublisher():
         # joint_state_publisher_gui) to be notified when things are updated.
         self.source_update_cb = None
 
+        self.last_callback_time = rospy.Time.now()
+
         source_list = get_param("source_list", [])
         self.sources = []
         for source in source_list:
@@ -175,6 +177,8 @@ class JointStatePublisher():
         self.pub = rospy.Publisher('joint_states', sensor_msgs.msg.JointState, queue_size=5)
 
     def source_cb(self, msg):
+        # rospy.loginfo('joint callback stamp {} -> {}'.format(self.last_callback_time, msg.header.stamp))
+        self.last_callback_time = msg.header.stamp
         for i in range(len(msg.name)):
             name = msg.name[i]
             if name not in self.free_joints:
@@ -216,7 +220,10 @@ class JointStatePublisher():
         # Publish Joint States
         while not rospy.is_shutdown():
             msg = sensor_msgs.msg.JointState()
-            msg.header.stamp = rospy.Time.now()
+            now = rospy.Time.now()
+            msg.header.stamp = self.last_callback_time
+
+            # rospy.loginfo(' - joints now {} last {}'.format(now, self.last_callback_time))
 
             if delta > 0:
                 self.update(delta)
